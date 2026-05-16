@@ -1,0 +1,44 @@
+# Gradle
+.gradle/
+build/
+!**/src/**/build/
+out/
+
+# IDE
+.idea/
+*.iml
+*.iws
+*.ipr
+.fleet/
+.vscode/
+
+# Android
+local.properties
+.cxx/
+captures/
+release/
+*.apk
+*.aab
+*.ap_
+*.dex
+
+# Kotlin
+.kotlin/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Secrets — never commit
+keystore.properties
+*.keystore
+*.jks
+google-services.json
+
+# Logs
+*.log
+hs_err_pid*
+
+# Generated / cache
+.cache/
+node_modules/
