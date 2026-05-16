@@ -25,3 +25,4 @@ rootProject.name = "sd-remote"
 include(":app")
 include(":core-ui")
 include(":core-protocol")
+include(":feature-transport")

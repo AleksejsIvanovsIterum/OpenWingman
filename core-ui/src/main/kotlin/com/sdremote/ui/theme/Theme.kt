@@ -82,9 +82,9 @@ fun WmTheme(
 
 /** Sugar to read tokens without spelling out `LocalWmTokens.current` everywhere. */
 object Wm {
-    val tokens
-        @Composable get() = androidx.compose.runtime.remember { LocalWmTokens } .let { LocalWmTokens.current }
+    val tokens: WmTokens
+        @Composable get() = LocalWmTokens.current
 
-    val type
+    val type: WmTypography
         @Composable get() = LocalWmTypography.current
 }
