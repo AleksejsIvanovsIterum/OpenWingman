@@ -50,6 +50,7 @@ class Session(
     private val meterPollPeriodMs: Long = 100L,  // 10 Hz idle; 30 Hz when recording
     /** True for MixPre family — they include an extra "Aux" meter group. */
     private val hasAuxMeterGroup: Boolean = true,
+    private val log: SessionLogger = SessionLogger.NoOp,
 ) {
     private val _state = MutableStateFlow<SessionState>(SessionState.Connecting)
     val state: StateFlow<SessionState> = _state.asStateFlow()
@@ -86,7 +87,9 @@ class Session(
 
     suspend fun send(request: CLinkRequest) = writeMutex.withLock {
         pendingCmd = request.id
-        transport.send(request.toBytes())
+        val bytes = request.toBytes()
+        log.log("tx[${request.id}]: ${bytes.toHexLog()}")
+        transport.send(bytes)
     }
 
     // ── Pump ──
@@ -96,7 +99,9 @@ class Session(
         _state.value = SessionState.Authenticating
         runCatching { send(AuthenticateInit) }.onFailure { fail(it); return }
 
+        log.log("session: pump started, waiting for transport bytes")
         transport.incoming.collect { chunk ->
+            log.log("rx-chunk[${chunk.size}B]: ${chunk.toHexLog()}")
             for (b in chunk) accumulator.addLast(b)
             drainFrames(accumulator)
         }
@@ -128,19 +133,24 @@ class Session(
     }
 
     private suspend fun handleAuth(frame: Frame) {
-        // Challenge — DATA frame with [0x04][len][bytes] payload.
+        log.log("auth-frame: cmd=0x${"%02x".format(frame.command)} payload=${frame.payload.toHexLog()}")
         AuthChallengeParser.parse(frame)?.let { ch ->
+            log.log("auth: challenge ${ch.bytes.size}B = ${ch.bytes.toHexLog()}")
             val response = Authentication.computeResponse(ch.bytes)
+            log.log("auth: response hash = ${response.toHexLog()}")
             runCatching { send(AuthenticateResponse(response)) }.onFailure { fail(it) }
             return
         }
-        // Auth success — ACK frame, payload[0] == 0x00.
         val payload = frame.payload
         if (frame.isAck && payload.isNotEmpty() && payload[0] == 0x00.toByte()) {
+            log.log("auth: SUCCESS → polling")
             _state.value = SessionState.Authenticated
             startMeterPolling()
             _frames.emit(frame)
             return
+        }
+        if (frame.isAck && payload.isNotEmpty()) {
+            log.log("auth: ACK with code=${payload[0].toInt() and 0xFF}")
         }
         _frames.emit(frame)
     }

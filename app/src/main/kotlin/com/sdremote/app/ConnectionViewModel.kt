@@ -4,9 +4,11 @@ import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.sdremote.domain.Session
+import com.sdremote.domain.SessionLogger
 import com.sdremote.transport.ScanResult
 import com.sdremote.transport.ble.AndroidBleScanner
 import com.sdremote.transport.ble.NordicBleTransportFactory
+import timber.log.Timber
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -72,8 +74,10 @@ class ConnectionViewModel(app: Application) : AndroidViewModel(app) {
         _stage.value = Stage.Connecting
         viewModelScope.launch {
             runCatching {
+                Timber.tag("CLink").d("connect %s (%s, rssi=%d)", target.displayName, target.address, target.rssi)
                 val transport = factory.connect(target.address)
-                val s = Session(transport, viewModelScope)
+                val logger = SessionLogger { line -> Timber.tag("CLink").d(line) }
+                val s = Session(transport, viewModelScope, log = logger)
                 s.start()
                 _session.value = s
                 _stage.value = Stage.Connected

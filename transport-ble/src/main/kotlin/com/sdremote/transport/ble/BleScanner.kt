@@ -42,6 +42,13 @@ class AndroidBleScanner(context: Context) : ScanService {
 
         val callback = object : ScanCallback() {
             override fun onScanResult(callbackType: Int, result: AndroidScanResult) {
+                timber.log.Timber.tag("CLink").d(
+                    "scan: %s (%s) rssi=%d adv=%s",
+                    result.device.name ?: "?",
+                    result.device.address,
+                    result.rssi,
+                    result.scanRecord?.bytes?.joinToString("") { "%02x".format(it) } ?: "?",
+                )
                 trySend(result.toAppScanResult())
             }
             override fun onBatchScanResults(results: MutableList<AndroidScanResult>) {
