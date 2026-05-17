@@ -35,10 +35,15 @@ android {
 
 dependencies {
     implementation(project(":core-ui"))
+    implementation(project(":core-protocol"))
+    implementation(project(":core-transport"))
+    implementation(project(":transport-ble"))
+    implementation(project(":domain"))
     implementation(project(":feature-transport"))
     implementation(project(":feature-takes"))
     implementation(project(":feature-reports"))
     implementation(project(":feature-device"))
+    implementation(project(":feature-scan"))
 
     val composeBom = platform(libs.androidx.compose.bom)
     implementation(composeBom)
