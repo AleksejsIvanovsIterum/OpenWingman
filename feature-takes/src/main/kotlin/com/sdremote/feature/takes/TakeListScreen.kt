@@ -89,20 +89,31 @@ fun TakeListScreen(
         WmHairline()
 
         // List
-        LazyColumn(modifier = Modifier.weight(1f)) {
-            val visible = takes.filter { row ->
-                when (filter) {
-                    TakeFilter.All     -> true
-                    TakeFilter.Circled -> row.circled
-                    TakeFilter.False   -> row.falseTake
-                    TakeFilter.NoNote  -> row.note.isBlank()
-                    TakeFilter.Scene14A -> row.scene == "14A"
-                    TakeFilter.Scene13C -> row.scene == "13C"
-                }
+        if (takes.isEmpty()) {
+            Box(modifier = Modifier.weight(1f).fillMaxWidth(),
+                contentAlignment = Alignment.Center) {
+                Text(
+                    text = "Take list not implemented yet",
+                    color = tokens.inkDim,
+                    style = Wm.type.noteBody,
+                )
             }
-            items(visible, key = { it.handle }) { row ->
-                TakeRowView(row, onClick = { onSelect(row) })
-                WmHairline()
+        } else {
+            LazyColumn(modifier = Modifier.weight(1f)) {
+                val visible = takes.filter { row ->
+                    when (filter) {
+                        TakeFilter.All     -> true
+                        TakeFilter.Circled -> row.circled
+                        TakeFilter.False   -> row.falseTake
+                        TakeFilter.NoNote  -> row.note.isBlank()
+                        TakeFilter.Scene14A -> row.scene == "14A"
+                        TakeFilter.Scene13C -> row.scene == "13C"
+                    }
+                }
+                items(visible, key = { it.handle }) { row ->
+                    TakeRowView(row, onClick = { onSelect(row) })
+                    WmHairline()
+                }
             }
         }
     }

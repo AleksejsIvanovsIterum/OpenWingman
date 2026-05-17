@@ -45,9 +45,10 @@ class AuthenticationTest {
     }
 
     @Test
-    fun `challenge parser extracts bytes after 0x04 prefix on DATA frame`() {
+    fun `challenge parser reads length-prefixed bytes from DATA frame`() {
         val challenge = byteArrayOf(0x11, 0x22, 0x33, 0x44)
-        val payload = byteArrayOf(0x04, challenge.size.toByte()) + challenge
+        // Wire format: payload[0] = length (in this case 4), then `length` bytes.
+        val payload = byteArrayOf(challenge.size.toByte()) + challenge
         val frame = Frame.build(command = FrameConstants.DATA, payload = payload)
         val parsed = AuthChallengeParser.parse(frame)
         assertNotNull(parsed)

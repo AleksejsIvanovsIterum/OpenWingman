@@ -99,9 +99,27 @@ private fun ConnectedShell(
         Box(modifier = Modifier.weight(1f)) {
             when (tab) {
                 WmNavTab.Transport -> TransportV6Screen(viewModel = transportVm)
-                WmNavTab.Takes -> TakeListScreen()
-                WmNavTab.Reports -> ReportsScreen()
-                WmNavTab.Device -> DeviceScreen()
+                // Takes / Reports / Device pull data via CLink commands that
+                // aren't wired yet — show empty state rather than misleading
+                // sample data. Mock data still lives in @Preview blocks.
+                WmNavTab.Takes -> TakeListScreen(
+                    takes = emptyList(),
+                    projectName = "—",
+                    totalCount = 0,
+                )
+                WmNavTab.Reports -> ReportsScreen(
+                    tiles = emptyList(),
+                    scenes = emptyList(),
+                )
+                WmNavTab.Device -> DeviceScreen(
+                    info = com.sdremote.feature.device.DeviceInfo(
+                        productLine = "Sound Devices",
+                        model = "—", firmware = "—", serialNumber = "—",
+                        wifiIp = "—", storageUsed = "—", storageFree = "—",
+                        storageFillPct = 0f,
+                    ),
+                    settings = emptyList(),
+                )
             }
         }
         WmBottomNav(

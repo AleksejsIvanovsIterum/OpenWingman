@@ -72,11 +72,13 @@ object AuthChallengeParser {
      */
     fun parse(frame: Frame): Challenge? {
         if (!frame.isData) return null
-        if (frame.payload.size < 2) return null
-        if (frame.payload[0] != 0x04.toByte()) return null
-        val len = frame.payload[1].toInt() and 0xFF
-        if (frame.payload.size < 2 + len) return null
-        val challenge = frame.payload.copyOfRange(2, 2 + len)
+        if (frame.payload.isEmpty()) return null
+        // payload[0] is the challenge length (typically 4 in current firmware,
+        // but read on-wire rather than gating on a magic marker).
+        val len = frame.payload[0].toInt() and 0xFF
+        if (len !in 1..32) return null
+        if (frame.payload.size < 1 + len) return null
+        val challenge = frame.payload.copyOfRange(1, 1 + len)
         return Challenge(challenge, sourceFrame = frame)
     }
 
