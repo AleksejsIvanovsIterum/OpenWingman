@@ -53,7 +53,7 @@ data class DriveStatusResponse(
     companion object {
         /** Caller passes the original [mediaIndex] (it's not echoed in the frame). */
         fun parse(frame: Frame, mediaIndex: Int): DriveStatusResponse? {
-            if (frame.command != CommandId.GetDriveStatus.byte) return null
+            // Routing now handled by Session.pendingCmd, not by command-byte echo.
             val p = frame.payload
             if (p.size < 13) return null
             return DriveStatusResponse(

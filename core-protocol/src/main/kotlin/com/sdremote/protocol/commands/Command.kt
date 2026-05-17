@@ -21,7 +21,11 @@ interface CLinkRequest {
 
 /** Sealed marker for typed response objects parsed from a received [Frame]. */
 sealed interface CLinkResponse {
-    val sourceFrame: Frame
+    /**
+     * Originating wire frame. Nullable because some parsers (e.g. meter polling
+     * decoded from raw payload bytes) don't retain the full frame.
+     */
+    val sourceFrame: Frame?
 }
 
 /** Returned when the command's response is not yet typed — caller must inspect [Frame] directly. */

@@ -60,7 +60,7 @@ data class SettingResponse(
 ) : CLinkResponse {
     companion object {
         fun parse(frame: Frame): SettingResponse? {
-            if (frame.command != CommandId.GetSetting.byte) return null
+            // Routing now handled by Session.pendingCmd, not by command-byte echo.
             if (frame.payload.size < 4) return null
             val sCode = Codec.readU16(frame.payload, 0)
             val setting = Setting.fromCodeOrNull(sCode) ?: return null
@@ -79,7 +79,7 @@ data class ChannelLinkingResponse(
 ) : CLinkResponse {
     companion object {
         fun parse(frame: Frame): ChannelLinkingResponse? {
-            if (frame.command != CommandId.GetChannelLinking.byte) return null
+            // Routing now handled by Session.pendingCmd, not by command-byte echo.
             if (frame.payload.size < 6) return null
             return ChannelLinkingResponse(
                 outputs = Codec.readU16(frame.payload, 0),

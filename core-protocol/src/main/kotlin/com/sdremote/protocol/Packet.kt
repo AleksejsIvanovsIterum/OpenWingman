@@ -24,13 +24,13 @@ object FrameConstants {
     const val IX_HEADER = 0
     const val IX_UNIT_ID = 1
     const val IX_LENGTH = 2
-    const val IX_COMMAND = 3
+    /** On send this is the [CommandId]; on receive it's an [ACK]/[DATA] marker or legacy data. */
+    const val IX_CMD_OR_MARKER = 3
     const val IX_PAYLOAD_START = 4
 
-    /** Special unit IDs. */
-    const val UNIT_ACK_SUCCESS: Byte = 0x00
-    const val UNIT_ACK: Byte = 0xF0.toByte()
-    const val UNIT_DATA_RESPONSE: Byte = 0xF1.toByte()
+    /** Markers used by the device at [IX_CMD_OR_MARKER] in responses. */
+    const val ACK: Byte = 0xF0.toByte()
+    const val DATA: Byte = 0xF1.toByte()
     const val UNIT_BROADCAST: Byte = 0xFE.toByte()
 
     /** Bytes added on top of [IX_LENGTH] value to get total frame size. */
@@ -49,11 +49,23 @@ object FrameConstants {
  */
 data class Frame(
     val unitId: Byte,
+    /**
+     * Byte at offset 3.
+     *  - On a frame this client constructed via [build], this is the [CommandId] code.
+     *  - On a frame received from the device, this is [FrameConstants.ACK] / [FrameConstants.DATA],
+     *    or — for legacy commands — the first byte of the response data itself.
+     */
     val command: Byte,
     val payload: ByteArray,
     val checksum1: Byte,
     val checksum2: Byte,
 ) {
+    /** True if this is a device→client ACK frame (success or error code in payload[0]). */
+    val isAck: Boolean get() = command == FrameConstants.ACK
+
+    /** True if this is a device→client DATA response (payload holds command-specific data). */
+    val isData: Boolean get() = command == FrameConstants.DATA
+
     /** Whether the parsed checksums actually match the recomputed ones. */
     val checksumsValid: Boolean
         get() {
@@ -69,7 +81,7 @@ data class Frame(
         out[FrameConstants.IX_HEADER] = FrameConstants.HEADER
         out[FrameConstants.IX_UNIT_ID] = unitId
         out[FrameConstants.IX_LENGTH] = len.toByte()
-        out[FrameConstants.IX_COMMAND] = command
+        out[FrameConstants.IX_CMD_OR_MARKER] = command
         payload.copyInto(out, FrameConstants.IX_PAYLOAD_START)
         out[out.size - 2] = checksum1
         out[out.size - 1] = checksum2
@@ -100,7 +112,7 @@ data class Frame(
         fun build(
             command: Byte,
             payload: ByteArray = ByteArray(0),
-            unitId: Byte = FrameConstants.UNIT_ACK_SUCCESS,
+            unitId: Byte = 0x00,
         ): Frame {
             val (c1, c2) = Checksum.compute(unitId, command, payload)
             return Frame(unitId, command, payload, c1, c2)
@@ -128,7 +140,7 @@ data class Frame(
             if (buf.size < expectedTotal) return ParseResult.NotEnoughBytes
 
             val unit = buf[FrameConstants.IX_UNIT_ID]
-            val cmd = buf[FrameConstants.IX_COMMAND]
+            val cmd = buf[FrameConstants.IX_CMD_OR_MARKER]
             val payload = buf.copyOfRange(
                 FrameConstants.IX_PAYLOAD_START,
                 FrameConstants.IX_PAYLOAD_START + dataLen - 1,

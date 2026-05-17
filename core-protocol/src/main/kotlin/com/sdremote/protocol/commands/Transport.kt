@@ -29,7 +29,7 @@ data class TransportStatusResponse(
 ) : CLinkResponse {
     companion object {
         fun parse(frame: Frame): TransportStatusResponse? {
-            if (frame.command != CommandId.TransportStatus.byte) return null
+            // Routing now handled by Session.pendingCmd, not by command-byte echo.
             if (frame.payload.isEmpty()) return null
             val state = TransportState.fromCodeOrNull(Codec.readU8(frame.payload, 0))
                 ?: TransportState.Unknown
@@ -45,7 +45,7 @@ data class TimecodeResponse(
 ) : CLinkResponse {
     companion object {
         fun parse(frame: Frame): TimecodeResponse? {
-            if (frame.command != CommandId.GetTimecode.byte) return null
+            // Routing now handled by Session.pendingCmd, not by command-byte echo.
             if (frame.payload.size < 12) return null
             return TimecodeResponse(TimecodeBlock.fromPayload(frame.payload), frame)
         }

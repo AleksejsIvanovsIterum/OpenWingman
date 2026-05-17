@@ -3,6 +3,7 @@ package com.sdremote.protocol
 import com.sdremote.protocol.auth.Authentication
 import com.sdremote.protocol.commands.AuthChallengeParser
 import com.sdremote.protocol.commands.AuthenticateResponse
+import com.sdremote.protocol.FrameConstants
 import org.junit.jupiter.api.Assertions.assertArrayEquals
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNotNull
@@ -44,10 +45,10 @@ class AuthenticationTest {
     }
 
     @Test
-    fun `challenge parser extracts bytes after 0x04 prefix`() {
+    fun `challenge parser extracts bytes after 0x04 prefix on DATA frame`() {
         val challenge = byteArrayOf(0x11, 0x22, 0x33, 0x44)
         val payload = byteArrayOf(0x04, challenge.size.toByte()) + challenge
-        val frame = Frame.build(command = CommandId.Authenticate.byte, payload = payload)
+        val frame = Frame.build(command = FrameConstants.DATA, payload = payload)
         val parsed = AuthChallengeParser.parse(frame)
         assertNotNull(parsed)
         assertArrayEquals(challenge, parsed!!.bytes)
@@ -55,8 +56,14 @@ class AuthenticationTest {
 
     @Test
     fun `challenge parser returns null on ACK form`() {
-        // ACK form — payload starts with 0x00 success, not 0x04 challenge.
-        val frame = Frame.build(command = CommandId.Authenticate.byte, payload = byteArrayOf(0x00))
+        // ACK frame, not a DATA challenge.
+        val frame = Frame.build(command = FrameConstants.ACK, payload = byteArrayOf(0x00))
+        assertNull(AuthChallengeParser.parse(frame))
+    }
+
+    @Test
+    fun `challenge parser returns null on non-data non-ack frame`() {
+        val frame = Frame.build(command = CommandId.Authenticate.byte, payload = byteArrayOf(0x04, 0x00))
         assertNull(AuthChallengeParser.parse(frame))
     }
 }

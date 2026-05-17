@@ -64,6 +64,14 @@ class Session(
     private var pumpJob: Job? = null
     private var pollJob: Job? = null
 
+    /**
+     * The last command id we sent. CLink responses don't echo the original
+     * command — they carry only an ACK / DATA marker — so we route by this.
+     * Single-in-flight design, mirroring the original Wingman implementation.
+     */
+    @Volatile
+    private var pendingCmd: CommandId? = null
+
     fun start() {
         if (pumpJob != null) return
         pumpJob = scope.launch { runPump() }
@@ -77,6 +85,7 @@ class Session(
     }
 
     suspend fun send(request: CLinkRequest) = writeMutex.withLock {
+        pendingCmd = request.id
         transport.send(request.toBytes())
     }
 
@@ -119,15 +128,15 @@ class Session(
     }
 
     private suspend fun handleAuth(frame: Frame) {
+        // Challenge — DATA frame with [0x04][len][bytes] payload.
         AuthChallengeParser.parse(frame)?.let { ch ->
             val response = Authentication.computeResponse(ch.bytes)
             runCatching { send(AuthenticateResponse(response)) }.onFailure { fail(it) }
             return
         }
+        // Auth success — ACK frame, payload[0] == 0x00.
         val payload = frame.payload
-        if (frame.command == CommandId.Authenticate.byte &&
-            payload.isNotEmpty() && payload[0] == 0x00.toByte()
-        ) {
+        if (frame.isAck && payload.isNotEmpty() && payload[0] == 0x00.toByte()) {
             _state.value = SessionState.Authenticated
             startMeterPolling()
             _frames.emit(frame)
@@ -137,12 +146,12 @@ class Session(
     }
 
     private fun handleData(frame: Frame) {
-        // The meter pump arrives as the only frequent DATA frame; decode it here
-        // for the snapshot. Other commands are surfaced via `frames` for callers
-        // that subscribe explicitly.
-        if (frame.command == CommandId.GetExtendedParameterChangeStatus.byte) {
+        // Device responses don't echo the request command — we route by what
+        // we last sent. Meter polling is by far the most frequent DATA frame
+        // and the only one we currently decode into the snapshot.
+        if (frame.isData && pendingCmd == CommandId.GetExtendedParameterChangeStatus) {
             ExtendedParameterChangeResponse
-                .parse(frame, hasAuxGroup = hasAuxMeterGroup)
+                .parsePayload(frame.payload, hasAuxGroup = hasAuxMeterGroup)
                 ?.let { update -> applyMeterUpdate(update) }
         }
     }

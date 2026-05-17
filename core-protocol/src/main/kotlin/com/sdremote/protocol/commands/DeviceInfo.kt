@@ -33,7 +33,7 @@ sealed interface DeviceInfoResponse : CLinkResponse {
          * we validate against that.
          */
         fun parse(frame: Frame, requested: DeviceInfoParam): DeviceInfoResponse? {
-            if (frame.command != CommandId.GetDeviceInfo.byte) return null
+            // Routing now handled by Session.pendingCmd, not by command-byte echo.
             val payload = frame.payload
             if (payload.isEmpty()) return null
 
@@ -87,7 +87,7 @@ data class UnitModeResponse(
 ) : CLinkResponse {
     companion object {
         fun parse(frame: Frame): UnitModeResponse? {
-            if (frame.command != CommandId.GetUnitMode.byte) return null
+            // Routing now handled by Session.pendingCmd, not by command-byte echo.
             val p = frame.payload
             if (p.size < 14) return null
             val modeCode = Codec.readU16(p, 0)

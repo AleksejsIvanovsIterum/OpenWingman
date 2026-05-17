@@ -50,20 +50,21 @@ data class ExtendedParameterChangeResponse(
     val tracks: MeterGroup,
     val aux: MeterGroup?,        // present on MixPre family
     val change: ChangeStatus,
-    override val sourceFrame: Frame,
+    override val sourceFrame: Frame? = null,
 ) : CLinkResponse {
     companion object {
         /**
-         * Parses the 4–5 meter groups + trailing [ChangeStatus] block.
+         * Parse the meter response directly from a DATA frame's payload bytes
+         * (i.e. positions [4..N-1] of the wire frame, which is what
+         * [Frame.payload] returns).
+         *
+         * Returns null on truncation. The caller is responsible for routing —
+         * only invoke when [Session]'s pending command is cmd 97.
          *
          * @param hasAuxGroup whether the device is a MixPre (extra group).
-         *   Caller should set this based on [com.sdremote.protocol.types.ProductId].
          */
-        fun parse(frame: Frame, hasAuxGroup: Boolean): ExtendedParameterChangeResponse? {
-            if (frame.command != CommandId.GetExtendedParameterChangeStatus.byte) return null
-            val p = frame.payload
+        fun parsePayload(p: ByteArray, hasAuxGroup: Boolean): ExtendedParameterChangeResponse? {
             var i = 0
-
             fun readGroup(): MeterGroup? {
                 if (i >= p.size) return null
                 val n = Codec.readU8(p, i); i++
@@ -100,7 +101,8 @@ data class ExtendedParameterChangeResponse(
             )
 
             return ExtendedParameterChangeResponse(
-                inputs, outputs, returns, tracks, aux, change, frame,
+                inputs, outputs, returns, tracks, aux, change,
+                sourceFrame = null,
             )
         }
     }

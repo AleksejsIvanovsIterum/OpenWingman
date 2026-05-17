@@ -63,8 +63,15 @@ data class ValidateRemotePassword(val passwordHash: ByteArray) : CLinkRequest {
  *   should treat the frame as a plain ACK).
  */
 object AuthChallengeParser {
+    /**
+     * Parse a DATA frame as the device's challenge.
+     *
+     * The caller is responsible for routing — invoke only after sending
+     * [AuthenticateInit]. Device responds with a DATA frame whose payload
+     * begins `[0x04][challengeLen][challengeBytes...]`.
+     */
     fun parse(frame: Frame): Challenge? {
-        if (frame.command != CommandId.Authenticate.byte) return null
+        if (!frame.isData) return null
         if (frame.payload.size < 2) return null
         if (frame.payload[0] != 0x04.toByte()) return null
         val len = frame.payload[1].toInt() and 0xFF
