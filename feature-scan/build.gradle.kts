@@ -6,7 +6,7 @@ plugins {
 
 android {
     namespace = "com.sdremote.feature.scan"
-    compileSdk = 34
+    compileSdk = 35
     defaultConfig { minSdk = 26 }
     buildFeatures { compose = true }
     compileOptions {

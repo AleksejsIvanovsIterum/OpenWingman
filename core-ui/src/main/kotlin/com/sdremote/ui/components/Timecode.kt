@@ -7,8 +7,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.text.font.FontFeature
-import androidx.compose.ui.text.font.FontFeatureSettings
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -23,7 +21,7 @@ import com.sdremote.ui.theme.WmTheme
  * Frame portion (FF) rendered in [Wm.tokens].inkDim so the eye lands on
  * seconds first.
  *
- * Uses tabular-nums via [FontFeatureSettings] so digits don't reflow.
+ * Uses tabular-nums via `fontFeatureSettings = "tnum"` so digits don't reflow.
  *
  * @param value HH:MM:SS:FF format (e.g. "00:27:42:13").
  * @param size base font size; if null falls back to the design's tcMonolith.

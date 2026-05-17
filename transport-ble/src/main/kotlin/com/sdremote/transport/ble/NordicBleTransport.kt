@@ -8,7 +8,6 @@ import com.sdremote.transport.Transport
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
@@ -46,11 +45,7 @@ class NordicBleTransport internal constructor(
 
     override suspend fun close() {
         runCatching { manager.disconnect().suspend() }
-        scope.cancel()
-    }
-
-    private fun CoroutineScope.cancel() {
-        kotlin.runCatching { (this.coroutineContext[kotlinx.coroutines.Job])?.cancel() }
+        scope.coroutineContext[kotlinx.coroutines.Job]?.cancel()
     }
 }
 
@@ -72,7 +67,7 @@ class NordicBleTransportFactory(private val appContext: Context) :
             .useAutoConnect(false)
             .suspend()
 
-        manager.requestMtu(BleConstants.DEFAULT_MTU).suspend()
+        manager.negotiateMtu(BleConstants.DEFAULT_MTU)
         manager.discoverAndSubscribe()
 
         return NordicBleTransport(manager, scope)
@@ -125,6 +120,11 @@ internal class WingmanBleManager(
         // The Nordic library performs initialize() (which enables notifications)
         // automatically once isRequiredServiceSupported returns true — this is
         // a placeholder for future explicit work (e.g. reading firmware rev).
+    }
+
+    /** requestMtu is protected, expose it via this internal helper. */
+    suspend fun negotiateMtu(mtu: Int) {
+        requestMtu(mtu).suspend()
     }
 
     suspend fun writeCLink(bytes: ByteArray) {

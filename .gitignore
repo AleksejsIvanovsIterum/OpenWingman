@@ -29,6 +29,9 @@ release/
 .DS_Store
 Thumbs.db
 
+# Local SDK pointer (per-machine)
+local.properties
+
 # Secrets — never commit
 keystore.properties
 *.keystore

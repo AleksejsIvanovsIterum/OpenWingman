@@ -98,7 +98,16 @@ private fun androidx.compose.ui.graphics.vector.PathBuilder.parseInto(d: String)
             }
             'a' -> {
                 val rx = readNum(); val ry = readNum(); val rot = readNum()
-                val laf = readNum() != 0f; val sf = readNum() != 0f
+                // SVG path flags may be concatenated with the next coordinate
+                // (e.g. "0122" means flag=0, flag=1, x=22). Read each flag as
+                // a single character.
+                fun readFlag(): Boolean {
+                    skipWs()
+                    val ch = d[i]; i++
+                    return ch == '1'
+                }
+                val laf = readFlag()
+                val sf = readFlag()
                 val x = readNum(); val y = readNum()
                 if (isAbs) arcTo(rx, ry, rot, laf, sf, x, y) else arcToRelative(rx, ry, rot, laf, sf, x, y)
             }
@@ -109,27 +118,14 @@ private fun androidx.compose.ui.graphics.vector.PathBuilder.parseInto(d: String)
 }
 
 object WmIcons {
-    // Filled marks
-    val Record  = ImageVector.Builder("record",  24.dp, 24.dp, VB, VB).apply {
-        path(fill = SolidColor(Color.Black)) { addCircle(12f, 12f, 6f) }
-    }.build()
-    val Stop    = ImageVector.Builder("stop",    24.dp, 24.dp, VB, VB).apply {
-        path(fill = SolidColor(Color.Black)) {
-            moveTo(6f, 6f); lineTo(18f, 6f); lineTo(18f, 18f); lineTo(6f, 18f); close()
-        }
-    }.build()
-    val Play    = ImageVector.Builder("play",    24.dp, 24.dp, VB, VB).apply {
-        path(fill = SolidColor(Color.Black)) {
-            moveTo(7f, 5f); lineTo(19f, 12f); lineTo(7f, 19f); close()
-        }
-    }.build()
-    val Circle  = ImageVector.Builder("circle",  24.dp, 24.dp, VB, VB).apply {
-        path(stroke = SolidColor(Color.Black), strokeLineWidth = 1.5f,
-            strokeLineCap = StrokeCap.Round, strokeLineJoin = StrokeJoin.Round) {
-            addCircle(12f, 12f, 8f)
-        }
-        path(fill = SolidColor(Color.Black)) { addCircle(12f, 12f, 3f) }
-    }.build()
+    // Filled marks — circles use arcTo (a) commands; PathBuilder has no addCircle.
+    val Record  = buildStroke("record")  { fill("M6 12a6 6 0 1 0 12 0a6 6 0 1 0 -12 0") }
+    val Stop    = buildStroke("stop")    { fill("M6 6h12v12h-12z") }
+    val Play    = buildStroke("play")    { fill("M7 5L19 12L7 19z") }
+    val Circle  = buildStroke("circle")  {
+        stroke("M4 12a8 8 0 1 0 16 0a8 8 0 1 0 -16 0")
+        fill("M9 12a3 3 0 1 0 6 0a3 3 0 1 0 -6 0")
+    }
     val FalseX  = buildStroke("false", strokeWidth = 2.2f) {
         stroke("M5 5l14 14M19 5L5 19")
     }
