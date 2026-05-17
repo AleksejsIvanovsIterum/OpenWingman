@@ -55,7 +55,7 @@ import com.sdremote.ui.theme.WmTheme
  */
 @Composable
 fun TransportV6Screen(
-    viewModel: TransportViewModel = viewModel()
+    viewModel: TransportViewModel = viewModel(),
 ) {
     val ui by viewModel.ui.collectAsStateWithLifecycle()
     TransportV6Content(

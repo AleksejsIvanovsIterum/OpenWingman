@@ -17,6 +17,7 @@
     <uses-feature android:name="android.hardware.bluetooth_le" android:required="true" />
 
     <application
+        android:name=".OpenWingmanApplication"
         android:label="OpenWingman"
         android:supportsRtl="true"
         android:theme="@style/Theme.OpenWingman">

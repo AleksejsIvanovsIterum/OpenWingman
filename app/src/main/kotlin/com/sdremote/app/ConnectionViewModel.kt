@@ -4,7 +4,6 @@ import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.sdremote.domain.Session
-import com.sdremote.domain.SessionState
 import com.sdremote.transport.ScanResult
 import com.sdremote.transport.ble.AndroidBleScanner
 import com.sdremote.transport.ble.NordicBleTransportFactory
@@ -17,31 +16,40 @@ import kotlinx.coroutines.launch
 
 /**
  * Holds whole-app connection state:
- *   - Scan flow (when not connected)
- *   - Active [Session] (once connected + authenticated)
+ *   - permission gate
+ *   - scan flow (when not connected)
+ *   - active [Session] (once connected + authenticated)
  *
  * Exposes a single [stage] enum that drives `OpenWingmanApp` between
- * "scan" and "connected" surfaces.
+ * scan / connecting / connected surfaces.
  */
 class ConnectionViewModel(app: Application) : AndroidViewModel(app) {
 
     private val scanner = AndroidBleScanner(app)
     private val factory = NordicBleTransportFactory(app)
 
-    enum class Stage { Scanning, Connecting, Connected, Disconnected }
+    enum class Stage { PermissionMissing, Scanning, Connecting, Connected, Disconnected }
 
-    private val _stage = MutableStateFlow(Stage.Scanning)
+    private val _stage = MutableStateFlow(Stage.PermissionMissing)
     val stage: StateFlow<Stage> = _stage.asStateFlow()
 
     private val _devices = MutableStateFlow<List<ScanResult>>(emptyList())
     val devices: StateFlow<List<ScanResult>> = _devices.asStateFlow()
 
-    var session: Session? = null
-        private set
+    private val _session = MutableStateFlow<Session?>(null)
+    val session: StateFlow<Session?> = _session.asStateFlow()
 
     private var scanJob: Job? = null
 
-    init { startScan() }
+    /** Called from the UI once runtime BLE permissions are confirmed. */
+    fun onPermissionsGranted() {
+        if (_stage.value == Stage.PermissionMissing) startScan()
+    }
+
+    /** Called by the UI when the user denies the prompt. */
+    fun onPermissionsDenied() {
+        _stage.value = Stage.PermissionMissing
+    }
 
     fun startScan() {
         scanJob?.cancel()
@@ -51,7 +59,6 @@ class ConnectionViewModel(app: Application) : AndroidViewModel(app) {
             runCatching {
                 scanner.scan().collect { result ->
                     _devices.update { current ->
-                        // dedupe by address; keep the freshest RSSI/payload.
                         (current.filterNot { it.address == result.address } + result)
                             .sortedByDescending { it.rssi }
                     }
@@ -68,7 +75,7 @@ class ConnectionViewModel(app: Application) : AndroidViewModel(app) {
                 val transport = factory.connect(target.address)
                 val s = Session(transport, viewModelScope)
                 s.start()
-                session = s
+                _session.value = s
                 _stage.value = Stage.Connected
             }.onFailure {
                 _stage.value = Stage.Disconnected
@@ -78,8 +85,8 @@ class ConnectionViewModel(app: Application) : AndroidViewModel(app) {
 
     fun disconnect() {
         viewModelScope.launch {
-            session?.stop()
-            session = null
+            _session.value?.stop()
+            _session.value = null
             _stage.value = Stage.Disconnected
         }
     }
